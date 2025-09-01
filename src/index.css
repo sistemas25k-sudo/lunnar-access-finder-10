@@ -1,0 +1,158 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Painel Lunnar Design System - Dark theme with red accents */
+
+@layer base {
+  :root {
+    /* Core backgrounds - Deep black theme */
+    --background: 0 0% 0%;
+    --background-secondary: 0 0% 22%;
+    --foreground: 0 0% 98%;
+
+    /* Card system - Dark with subtle transparency */
+    --card: 0 0% 5%;
+    --card-secondary: 0 0% 15%;
+    --card-foreground: 0 0% 95%;
+
+    /* Popover */
+    --popover: 0 0% 8%;
+    --popover-foreground: 0 0% 95%;
+
+    /* Primary - Red accent system */
+    --primary: 358 95% 35%;
+    --primary-light: 1 90% 45%;
+    --primary-bright: 358 100% 65%;
+    --primary-foreground: 0 0% 98%;
+
+    /* Secondary - Gray tones */
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 85%;
+
+    /* Muted tones */
+    --muted: 0 0% 10%;
+    --muted-foreground: 0 0% 60%;
+
+    /* Accent - Bright red for highlights */
+    --accent: 1 90% 45%;
+    --accent-foreground: 0 0% 98%;
+
+    /* Status colors */
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --success: 120 60% 50%;
+    --warning: 45 100% 50%;
+
+    /* Borders and inputs */
+    --border: 0 0% 20%;
+    --input: 0 0% 12%;
+    --ring: 358 95% 35%;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-light)));
+    --gradient-secondary: linear-gradient(180deg, hsl(var(--background)), hsl(var(--background-secondary)));
+    --gradient-accent: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--primary-bright)));
+
+    /* Shadows and glows */
+    --shadow-red-glow: 0 0 50px hsl(var(--primary) / 0.3);
+    --shadow-subtle: 0 10px 30px hsl(0 0% 0% / 0.5);
+    --shadow-intense: 0 20px 60px hsl(0 0% 0% / 0.8);
+
+    /* Animation and transitions */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+    --radius: 0.75rem;
+
+    /* Sidebar system */
+    --sidebar-background: 0 0% 5%;
+    --sidebar-foreground: 0 0% 85%;
+    --sidebar-primary: 358 95% 35%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 0 0% 10%;
+    --sidebar-accent-foreground: 0 0% 90%;
+    --sidebar-border: 0 0% 15%;
+    --sidebar-ring: 358 95% 35%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    background: hsl(var(--gradient-secondary));
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--background));
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--primary));
+    border-radius: 4px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary-light));
+  }
+}
+
+@layer components {
+  /* Hero section styles */
+  .hero-glow {
+    background: radial-gradient(circle at center, hsl(var(--primary) / 0.15) 0%, transparent 70%);
+  }
+
+  /* Glassmorphism effect */
+  .glass {
+    background: hsl(var(--card) / 0.8);
+    backdrop-filter: blur(20px);
+    border: 1px solid hsl(var(--border) / 0.5);
+  }
+
+  /* Red glow animation */
+  .red-glow {
+    box-shadow: 0 0 30px hsl(var(--primary) / 0.4);
+    animation: pulse-glow 2s ease-in-out infinite alternate;
+  }
+
+  @keyframes pulse-glow {
+    from { box-shadow: 0 0 20px hsl(var(--primary) / 0.3); }
+    to { box-shadow: 0 0 40px hsl(var(--primary) / 0.6); }
+  }
+
+  /* Cyber grid background */
+  .cyber-grid {
+    background-image: 
+      linear-gradient(hsl(var(--primary) / 0.1) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--primary) / 0.1) 1px, transparent 1px);
+    background-size: 50px 50px;
+  }
+
+  /* Matrix animation */
+  @keyframes matrix-fall {
+    0% { 
+      transform: translateY(-100%); 
+      opacity: 0; 
+    }
+    20% { 
+      opacity: 1; 
+    }
+    80% { 
+      opacity: 1; 
+    }
+    100% { 
+      transform: translateY(100vh); 
+      opacity: 0; 
+    }
+  }
+}
