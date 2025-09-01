@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface Notification {
   id: string;
@@ -16,11 +17,15 @@ export interface Notification {
 interface NotificationContextType {
   notifications: Notification[];
   unreadCount: number;
+  pushEnabled: boolean;
   addNotification: (notification: Omit<Notification, 'id' | 'createdAt' | 'read'>) => void;
   markAsRead: (notificationId: string) => void;
   markAllAsRead: () => void;
   deleteNotification: (notificationId: string) => void;
   clearAll: () => void;
+  enablePushNotifications: () => Promise<boolean>;
+  sendTestNotification: () => void;
+  requestPermission: () => Promise<boolean>;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -28,8 +33,10 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [pushEnabled, setPushEnabled] = useState(false);
 
   useEffect(() => {
+    checkNotificationSupport();
     // Carregar notificações salvas do localStorage
     if (user) {
       const savedNotifications = localStorage.getItem(`lunnar_notifications_${user.id}`);
@@ -48,8 +55,38 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
       }));
       
       setNotifications(combined);
+      checkPushSubscription();
     }
   }, [user]);
+
+  const checkNotificationSupport = () => {
+    if ('Notification' in window && 'serviceWorker' in navigator) {
+      setPushEnabled(Notification.permission === 'granted');
+    }
+  };
+
+  const checkPushSubscription = async () => {
+    if (!user) return;
+    
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+      
+      if (subscription) {
+        // Sincronizar subscription com Supabase
+        await supabase
+          .from('push_subscriptions')
+          .upsert({
+            user_id: user.id,
+            subscription: subscription,
+            endpoint: subscription.endpoint,
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'user_id' });
+      }
+    } catch (error) {
+      console.error('Error checking push subscription:', error);
+    }
+  };
 
   const saveNotifications = (newNotifications: Notification[]) => {
     if (user) {
@@ -115,6 +152,103 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const requestPermission = async (): Promise<boolean> => {
+    if (!('Notification' in window)) {
+      toast({
+        title: "Notificações não suportadas",
+        description: "Seu navegador não suporta notificações push",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    if (Notification.permission === 'denied') {
+      toast({
+        title: "Notificações bloqueadas",
+        description: "Habilite as notificações nas configurações do navegador",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    const permission = await Notification.requestPermission();
+    const granted = permission === 'granted';
+    setPushEnabled(granted);
+
+    if (granted) {
+      toast({
+        title: "Notificações habilitadas!",
+        description: "Você receberá alertas sobre suas buscas"
+      });
+    }
+
+    return granted;
+  };
+
+  const enablePushNotifications = async (): Promise<boolean> => {
+    try {
+      const granted = await requestPermission();
+      if (!granted || !user) return false;
+
+      const registration = await navigator.serviceWorker.ready;
+      
+      // VAPID key (em produção, usar uma chave específica)
+      const vapidPublicKey = 'BMqSvZkj8rqV5Q8OQ5H4J5qN7Hy2V3r4H9rQ2X8Y1N6P7t9';
+      
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: vapidPublicKey
+      });
+
+      // Salvar subscription no Supabase
+      const { error } = await supabase
+        .from('push_subscriptions')
+        .upsert({
+          user_id: user.id,
+          subscription: subscription,
+          endpoint: subscription.endpoint,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id' });
+
+      if (error) throw error;
+
+      toast({
+        title: "Push notifications ativadas!",
+        description: "Você receberá notificações quando suas buscas ficarem prontas"
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error enabling push notifications:', error);
+      toast({
+        title: "Erro ao ativar notificações",
+        description: "Tente novamente em alguns instantes",
+        variant: "destructive"
+      });
+      return false;
+    }
+  };
+
+  const sendTestNotification = () => {
+    if (!pushEnabled) {
+      toast({
+        title: "Notificações desabilitadas",
+        description: "Habilite as notificações primeiro",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    new Notification('Painel Lunnar - Teste', {
+      body: 'Suas notificações estão funcionando perfeitamente!',
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
+      tag: 'test-notification',
+      timestamp: Date.now(),
+      requireInteraction: false
+    });
+  };
+
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
@@ -122,11 +256,15 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
       value={{
         notifications,
         unreadCount,
+        pushEnabled,
         addNotification,
         markAsRead,
         markAllAsRead,
         deleteNotification,
-        clearAll
+        clearAll,
+        enablePushNotifications,
+        sendTestNotification,
+        requestPermission
       }}
     >
       {children}
